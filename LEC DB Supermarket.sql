@@ -53,10 +53,13 @@ go
 /*
   Create trigger to reduce stock from Sale 
   and Trigger to add stock from purchase 
-  (Combine trigger and Procedure
+  (Combine trigger and Procedure)
+*/
+/*
+	Can one product come from multiple Supplier ?
 */
 create table Product (
-	ProductId char (6) not null,
+	ProductId char (12) not null,
 	ProductName varchar (20) not null,
 	Stock int not null,
 	ReOrderStock int not null,-- The quantity for an item to ensure the store doesn't run out product
@@ -64,62 +67,96 @@ create table Product (
 	constraint PK_ProductId primary key(ProductId)
 )
 go
+create table ProductCategory(
+	ProductCategoryId char(8) not null,
+	ProductCategoryName varchar(100) not null,
+	constraint UNQ_ProductCategoryName unique(ProductCategoryName),
+	constraint PK_ProductNameCategoryId primary key(ProductCategoryId)
+)
+go
+create table ProductDataAndCategoryList(
+	ProductId char(12) not null,
+	ProductCategoryId char(8) not null,
+	constraint CK_ProductDataAndCategoryList primary key(ProductId, ProductCategoryId),
+	constraint FK_ProductIdProductDataAndCategoryList foreign key(ProductId) 
+		references Product(ProductId),
+	constraint FK_ProductCategoryIdProductDataAndCategoryList 
+		foreign key(ProductCategoryId) references ProductCategory(ProductCategoryId)
+)
+go
 -- One supplier can have more than one product given
 create table SupplierProduct (
 	SupplierId char(5) not null,
-	ProductId char(6) not null,
+	ProductId char(12) not null,
 	constraint FK_ProductListSupplierId foreign key(SupplierId) references Supplier(SupplierId),
 	constraint FK_ProductListProductId foreign key (ProductId) references Product(ProductId),
 	constraint CK_SupplierProduct primary key(SupplierId,ProductId)
 )
 go
 create table PurchasePaymentType (
-	PuchasePaymentTypeName varchar(30) not null,
+	PurchasePaymentTypeName varchar(30) not null,
 	PurchasePaymentTypeID char(6) not null,
-	constraint PK_PurchasePaymentTypeID primary key(PurchasePaymentTypeId) 
+	constraint PK_PurchasePaymentTypeID primary key(PurchasePaymentTypeId) ,
+	constraint UNQ_PurchasePaymentTypeName unique(PurchasePaymentTypeName),
+	constraint UNQ_PurchasepaymentTypeID unique(PurchasePaymentTypeID)
 )
 go
 create table PurchaseTransactionHeader (
 	HandleStaff char(5) not null,
-	TransactionID char(5) not null,
+	PurchaseTransactionID char(5) not null,
 	TypeofPurchase varchar(20) not null,
 	SupplierId char(5)not null,
 	PurchaseDate date not null,
-	constraint PK_PurchaseTransactionheader primary key(TransactionID)
+	constraint PK_PurchaseTransactionheader primary key(PurchaseTransactionID)
 )
 go
 create table PurchaseTransactionDetail(
-	ProductName varchar(20) not null,
+	PurchaseTransactionID char(5) not null,
 	ProductId char (6) not null,
-	qty int not null,
-	PurchasePaymentType varchar(30) not null
+	qtyPurchase int not null,
+	PurchasePaymentTypeId char(6) not null,
+	constraint FK_PurchaseTransactionID_TransactionDetail 
+		foreign key (PurchaseTransactionID) 
+	constraint FK_ProductID_PurchaseDetail foreign key(ProductId)
+		references Product(ProductId),
+		references PurchaseTransactionHeader(PurchaseTransactionID ),
+	constraint CK_PurchaseTransactionDetail 
+		primary key(PurchaseTransactionID, ProductId),
+	constraint cond_qtyPurchase check (qtyPurchase > 0)
 )
 go
-create table Customer(
+create table Customerbio(
 	CustomerID char(42) not null,
 	CustomerPhoneNumber char(20) not null,
 	CustomerName varchar(30) not null,
-	CustomerGender varchar(15) not null
+	CustomerGender varchar(15) not null,
+	CustomerType varchar(20) not null,
+	constraint PK_Customerbio primary key(CustomerID), 
+	constraint cond_CustomerTypeBio check(CustomerType in ('Member','Normal')
 )
 go
 create table SaleTransactionHeader (
-	HandleStaff char(5) not null,
+	HandleStaffID char(5) not null,
 	SaleID char(5) not null,
 	TypeofSale varchar(20) not null,
 	CustomerId char(5)not null,
 	SaleDate date not null,
 	SalePaymentType char(6) not null,
-	constraint PK_SaleTransactionheader primary key(SaleID)
+	constraint PK_SaleTransactionheader primary key(SaleID),
+	constraint FK_HandleStaffSaleHeader foreign key(HandleStaffID)
+		references StaffBio(StataffId)
 
 )
 go
 create table SaleTransactionDetail (
 	SaleID char(5) not null,
-	ProductCategory varchar(100) not null,
 	ProductId char(5) not null,
-	qty int not null
-
-
+	qty int not null,
+	constraint CK_SaleTransactionDetail primary key(SaleID, ProductId),
+	constraint FK_SaleTransactionDetail_ProductId foreign key(ProductId)
+		references Product(ProductId),
+	constraint FK_SaleTransactionDetail_SaleId foreign key(SaleId)
+		references SaleTransactionHeader(SaleID)
 )
 
       
