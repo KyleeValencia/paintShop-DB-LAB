@@ -2,6 +2,7 @@ create database [PAinT Shop (LAb Db Project)]
 GO
 use [PAinT Shop (LAb Db Project)]
 go
+
 create table StaffBio(
 	StaffId char(5) not null,
 	StaffName varchar(50) not null,
@@ -20,6 +21,7 @@ Create table StaffTypePosition(
 	PositionName varchar(40) not null,
 	constraint PK_StaffTypePosition primary key (StaffpositionId),
 	constraint cond_PositionName check (len(PositionName)>2),
+	constraint UNQ_PositionName unique(PositonName),
 	constraint cond_StaffPositionId check(StaffPositionId like 'SP[0-9][0-9][0-9]') 
 )
 go
@@ -63,6 +65,13 @@ create table Paint(
 	constraint FK_ColorId foreign key(ColorId) references ColorType(ColorId)
 )
 go
+create table VendorProduct(
+	VendorId char(5) not null,
+	PaintId char(5) not null,
+	constraint CK_VendorProduct primary key(VendorId, PaintId),
+	constraint FK_VendorProductVendorId foreign key ( VendorId)references VendorBio(VendorId)
+)
+go
 create table CustomerBio(
 	CustomerId char(5) not null,
 	CustomerName varchar(30) not null,
@@ -89,7 +98,7 @@ create table SalePaymentType(
 	SalePaymentTypeId char(6) not null,
 	SalePaymentName varchar(50) not null,
 	constraint PK_SalePaymentypeId primary key (SalePaymentTypeId),
-	constraint cond_PK_SalePaymentype check(SalePaymentTypeId like 'PT[0-9][0-9][0-9]'),
+	constraint cond_PK_SalePaymentype check(SalePaymentTypeId like 'SPT[0-9][0-9][0-9]'),
 	constraint cond_SalePaymentName check (SalePaymentName in ('Cash','QRis','Credit','Debit'))
 )
 go
@@ -109,34 +118,66 @@ go
 create table PurchaseDetailTransaction(
 	PurchaseTransactionID char(5) not null,
 	PaintId char(5) not null,
-	qtyBuy int not null,1`
+	qtyBuy int not null,
+	constraint CK_PurchaseTransactionDetail primary key(PurchaseTransactionID, PaintId),
+	constraint cond_PurchaseTransactionDetailQty check (qtyBuy > 0),
+	constraint FK_PurchaseTransactionDetailPaintId foreign key (PaintId) references Paint(paintId),
+	constraint FK_PurchaseTransactionDetailSaleID foreign key (PurchaseTransactionID)references PurchaseHeaderTransaction(PurchaseTransactionID)
 )
 go
 create table SaleTransactionHeader (
 	HandleStaff char(5) not null,
 	SaleID char(5) not null,
-	TypeofSale varchar(20) not null,
+	SalePaymentTypeId char(6) not null,
 	CustomerId char(5)not null,
 	SaleDate date not null,
 	constraint PK_SaleTransactionheader primary key(SaleID),
 	constraint cond_SaleIdTransactionHeader check (SaleID like 'SA[0-9][0-9][0-9]'),
-	constraint cond_SaleTransactionDate check (Year(SaleDate)=2021)
+	constraint cond_SaleTransactionDate check (Year(SaleDate)=2021),
+	constraint FK_SaleTransactionHeaderSalePaymentTypeId foreign key (SalePaymentTypeId) 
+		references SalePaymentType(SalePaymentTypeId)
 
 )
 go
 create table SaleTransactionDetail (
 	SaleID char(5) not null,
 	PaintId char(5) not null,
-	qtySale int not null
+	qtySale int not null,
+	constraint CK_SaleTransactionDetail primary key(SaleID, PaintId),
+	constraint cond_SaleTransactionDetailQty check (qtySale > 0),
+	constraint FK_SaleTransactionDetailPaintId foreign key (PaintId) references Paint(paintId),
+	constraint FK_SaleTransactionDetailSaleID foreign key (SaleID)references SaleTransactionHeader(SaleID)
 
 )
 
+--use master
 
+insert into StaffBio values 
+('ST001','Mikaila','male','08-08-1999',1500000)
 
+insert into StaffTypePosition values
+('SP000','SuperVisor')
+
+insert into SaleTransactionHeade values
+('SP003','SA000','S')
+
+select * from SaleTransactionHeader
+
+alter table PurchasePaymentType
+add constraint UNQ_PurchasePaymentTypeId unique(PurchasePaymentTypeId)
+go
+
+begin tran
+	alter table PurchasePaymentType
+	add constraint UNQ_PurchasePaymentName unique(PurchasePaymentName)
+rollback
+go
+begin tran
+	alter table PurchasePaymentType
+	drop constraint cond_PurchasePaymentName
+rollback
 use master
-
-
-select GETDATE()
-
 drop database [PAinT Shop (LAb Db Project)]
 
+
+--select GETDATE()
